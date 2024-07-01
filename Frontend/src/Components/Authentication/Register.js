@@ -119,6 +119,24 @@ function UserRegister() {
               User Registration
             </Button>
           </Link>
+          <Link to="/volunteer_register">
+            <Button
+              variant="contained"
+              color="success"
+              fullWidth
+              sx={{
+                mt: 6,
+                height: "50px",
+                borderRadius: "20px",
+                backgroundColor: "#20B486",
+                "&:hover": {
+                  backgroundColor: "#1A946D ",
+                },
+              }}
+            >
+              Volunteer Registration
+            </Button>
+          </Link>
           <Link to="/ngo_register">
             <Button
               variant="contained"

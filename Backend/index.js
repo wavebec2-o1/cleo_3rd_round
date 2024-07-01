@@ -20,7 +20,7 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true })); 
 
 // Schedule the cron job to run every hour
-// cron.schedule('0 * * * *', async () => {
+// cron.schedule('*/1 * * * *', async () => {
 //   console.log('Offering donations to volunteers...');
 //   await volunteerController.offerDonationsToVolunteers();
 // });
@@ -32,7 +32,7 @@ app.use('/api/ngo', require('./routes/ngoRoute'));
 app.use('/api/search', require('./routes/searchRoute'));
 app.use('/api/volunteer', require('./routes/volunteerRoute'));
 app.use('/api/tracking', require('./routes/trackingRoute'));
-
+app.use('/api/admin',require('./routes/adminRoute'))
 // Start the server
 const PORT = process.env.PORT || 5000;
 

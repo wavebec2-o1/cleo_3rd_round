@@ -18,7 +18,15 @@ const hotelSchema = new Schema({
   donations: [{ type: Schema.Types.ObjectId, ref: 'Donation' }],
   isDeleted: { type: Boolean, default: false },
   kycDocuments: { type: [String], required: true }, // Array of file paths or URLs
-  isVerified: { type: Boolean, default: false } // Verification status
+  isVerified: { type: Boolean, default: false }, // Verification status
+  termsAcceptance: {
+    acceptedAt: { type: Date },
+    ipAddress: { type: String },
+    userAgent: { type: String },
+    signatureImage: { type: String }, // URL or path to the signature image
+    acceptedTermsVersion: { type: String }, // Version of the terms accepted
+    isAccepted: { type: Boolean, default: false }
+  }
 }, { timestamps: true });
 
 const Hotel = mongoose.model('Hotel', hotelSchema);

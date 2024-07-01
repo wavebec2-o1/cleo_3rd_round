@@ -20,9 +20,11 @@ import {
   Notifications as NotificationsIcon,
   AccountCircle as AccountCircleIcon,
   Help as HelpIcon,
+  Menu,
+  MenuItem,
 } from "@mui/icons-material";
 import Logo from "../../../Images/Logo_Hotel.svg";
-
+import { useNavigate } from "react-router-dom";
 // import DashboardComponent from "./DashboardComponen";
 // import Content from "../Contact/Contact";
 // import About from "../Authentication/Register";
@@ -37,12 +39,17 @@ import AcceptedDonation from "../AcceptedDonation";
 import { useSelector } from "react-redux";
 import axios from "axios";
 import { Link } from "react-router-dom";
-
+import { useDispatch } from "react-redux";
+import { logout } from "../../../features/auth/authSlice";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import { toast } from "sonner";
 const SideNav = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLink, setSelectedLink] = useState("Dashboard");
   const { user } = useSelector((state) => state.auth);
   const [unreadCount, setUnreadCount] = useState(0);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const toggleNav = () => {
     setIsOpen(!isOpen);
@@ -67,6 +74,11 @@ const SideNav = () => {
 
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/login");
+    toast.success("Logout Successful");
+  };
 
   const fetchUnreadCount = async () => {
     try {
@@ -160,6 +172,14 @@ const SideNav = () => {
                   src="https://marketplace.canva.com/EAFpeiTrl4c/1/0/1600w/canva-abstract-chef-cooking-restaurant-free-logo-9Gfim1S8fHg.jpg"
                 />
               </div>
+              <IconButton onClick={handleLogout}>
+                {/* <ExitToAppIcon
+                  fontSize="small"
+                  sx={{ mr: 1 }}
+                  style={{ color: "white" }}
+                /> */}
+                <h6 style={{ color: "white", fontSize: "15px" }}>Log Out</h6>
+              </IconButton>
             </div>
           </div>
         </div>

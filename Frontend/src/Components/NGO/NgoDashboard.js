@@ -21,6 +21,7 @@ import {
   TableBody,
 } from "@mui/material";
 import { useSelector } from "react-redux";
+import Title from "../Title/Title1";
 
 const NgoDashboard = ({ setSelectedLink }) => {
   const [donations, setDonations] = useState([]);
@@ -32,7 +33,9 @@ const NgoDashboard = ({ setSelectedLink }) => {
   useEffect(() => {
     // Fetch donations from API
     axios
-      .get(`http://localhost:5000/api/donation/ngos/${user._id}/donations`)
+      .get(
+        `http://annaseva.ajinkyatechnologies.in/api/donation/ngos/${user._id}/donations`
+      )
       .then((response) => {
         setDonations(response.data.donations);
       })
@@ -81,10 +84,13 @@ const NgoDashboard = ({ setSelectedLink }) => {
   const handleConfirmRequest = () => {
     if (selectedDonation) {
       axios
-        .put("http://localhost:5000/api/donation/donations/request", {
-          donationId: selectedDonation._id,
-          ngoId: user._id,
-        })
+        .put(
+          "http://annaseva.ajinkyatechnologies.in/api/donation/donations/request",
+          {
+            donationId: selectedDonation._id,
+            ngoId: user._id,
+          }
+        )
         .then((response) => {
           setRequestedDonations([...requestedDonations, selectedDonation._id]);
           Swal.fire({
@@ -131,6 +137,9 @@ const NgoDashboard = ({ setSelectedLink }) => {
 
   return (
     <Box sx={{ flexGrow: 1, padding: 2 }}>
+      <div className="pb-8">
+        <Title title="Dashboard "></Title>
+      </div>
       {donations.length === 0 ? (
         <Typography variant="h5" align="center" sx={{ mt: 3 }}>
           No Donations available at this point
@@ -142,11 +151,11 @@ const NgoDashboard = ({ setSelectedLink }) => {
               const uploadPhoto = donation.uploadPhoto;
               const imageUrl =
                 uploadPhoto && uploadPhoto.includes("\\")
-                  ? `http://localhost:5000/donations/${uploadPhoto
+                  ? `http://annaseva.ajinkyatechnologies.in/${uploadPhoto
                       .split("\\")
                       .pop()}`
                   : uploadPhoto
-                  ? `http://localhost:5000/donations/${uploadPhoto}`
+                  ? `http://annaseva.ajinkyatechnologies.in/${uploadPhoto}`
                   : "https://via.placeholder.com/80";
 
               // Calculate distance between donation and NGO
@@ -160,19 +169,15 @@ const NgoDashboard = ({ setSelectedLink }) => {
               return (
                 <Grid item xs={12} sm={6} md={4} key={donation._id}>
                   <Card
-                    // sx={{
-                    //   maxWidth: 345,
-                    //   borderTopWidth: "20px",
-                    //   borderTopColor: getBorderColor(donation.expiry),
-                    //   boxShadow: 3,
-                    // }}
                     sx={{
                       maxWidth: 345,
-                      // borderTopWidth: "20px",
-                      // borderTopColor: getBorderColor(donation.expiry),
                       boxShadow: `3px 3px 10px ${getBorderColor(
                         donation.expiry
-                      )}`, // Adjusted boxShadow property
+                      )}`,
+                      transition: "transform 0.2s ease-in-out", // Adding transition for smooth effect
+                      "&:hover": {
+                        transform: "scale(1.05)", // Scale effect on hover
+                      },
                     }}
                   >
                     {imageUrl ? (
@@ -181,7 +186,7 @@ const NgoDashboard = ({ setSelectedLink }) => {
                         height="200"
                         image={imageUrl}
                         alt={donation.name}
-                        style={{ height: "200px", objectFit: "cover" }} // Add this line to fix image size
+                        style={{ height: "200px", objectFit: "cover" }}
                       />
                     ) : (
                       <CardMedia
@@ -189,7 +194,7 @@ const NgoDashboard = ({ setSelectedLink }) => {
                         height="200"
                         image="https://via.placeholder.com/200"
                         alt="No Image Available"
-                        style={{ height: "200px", objectFit: "cover" }} // Add this line to fix image size
+                        style={{ height: "200px", objectFit: "cover" }}
                       />
                     )}
                     <CardContent>

@@ -10,6 +10,7 @@ import Section3 from "./Section3";
 import Section4 from "./Section4";
 import Gif from "../../Images/animatedgif.gif";
 import { Button, Typography } from "@mui/material";
+import { Link } from "react-router-dom";
 function LandingPage() {
   return (
     <>
@@ -28,7 +29,7 @@ function LandingPage() {
           className="container"
         >
           <section class=" body-font container">
-            <div class="container mx-auto flex px-12 py-24 md:flex-row flex-col items-center">
+            <div class="container mx-auto flex px-12 py-20 md:flex-row flex-col items-center">
               <div class="lg:flex-grow md:w-1/2 lg:pr-24 md:pr-16 flex flex-col md:items-start md:text-left mb-16 md:mb-0 items-center text-center">
                 <Typography
                   variant="h6"
@@ -44,7 +45,7 @@ function LandingPage() {
                     display: { xs: "none", sm: "block" },
                     fontFamily: "Dancing Script",
                     fontOpticalSizing: "auto",
-                    fontSize: 76,
+                    fontSize: 84,
                     fontWeight: "bold",
                     letterSpacing: ".1rem",
                     color: "white",
@@ -53,13 +54,16 @@ function LandingPage() {
                 >
                   Anna Seva
                 </Typography>
-                <h1 class="text-white title-font lg:text-5xl text-3xl pb-2 mb-4 font-medium text-gray-900">
+                <h1 class="text-white title-font lg:text-5xl text-4xl pb-2 mb-4 font-medium text-gray-900">
                   Transforming Surplus Food
-                  <br class="hidden lg:inline-block" />
+                  {/* <br class="hidden lg:inline-block" /> */}
+                </h1>
+                <h1 class="text-white title-font lg:text-5xl text-4xl pb-2 mb-4 font-medium text-gray-900">
+                  {/* <br class="hidden lg:inline-block" /> */}
                   into Hope!
                 </h1>
 
-                <p class="text-white mb-8 leading-relaxed">
+                <p class="text-white  text-xl mb-8 leading-relaxed">
                   Every year, millions of tons of food go to waste while
                   millions of people go hungry. AnnaSeva transforms this surplus
                   food into a beacon of hope by connecting restaurants with
@@ -70,9 +74,15 @@ function LandingPage() {
                   {/* <button class="inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg">
                     Button
                   </button> */}
-                  <button class=" inline-flex text-gray-700 bg-gray-100 border-0 py-2 px-6 focus:outline-none hover:bg-gray-200 rounded text-lg">
-                    What We Do
-                  </button>
+
+                  <div className="flex justify-center">
+                    <Link
+                      to="/aboutus"
+                      className="inline-flex text-gray-700 bg-gray-100 border-0 py-2 px-6 focus:outline-none hover:bg-gray-200 rounded text-lg"
+                    >
+                      What We Do
+                    </Link>
+                  </div>
                 </div>
               </div>
               <div class="lg:max-w-lg lg:w-full md:w-1/2 w-5/6">

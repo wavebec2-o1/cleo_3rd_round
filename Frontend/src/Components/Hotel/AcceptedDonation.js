@@ -412,7 +412,7 @@ function AcceptedDonation() {
                     <TableCell>
                       {request.tracking && (
                         <img
-                          src={`http://localhost:5000/qrcodes/${request.requestId}.png`}
+                          src={`http://annaseva.ajinkyatechnologies.in/qrcodes/${request.requestId}.png`}
                           alt={`QR Code for donation ${request.requestId}`}
                           style={{ width: "100px", height: "100px" }}
                         />

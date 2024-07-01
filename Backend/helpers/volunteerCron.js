@@ -1,67 +1,66 @@
 const Donation = require('../models/donationModel');
 const Volunteer = require('../models/volunteerModel');
 const Notification = require('../models/notificationModel');
-// const transporter = require('../config/email'); // Assuming the path to the email configuration
 const nodemailer = require('nodemailer');
 
 // Nodemailer setup
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: 'annaseva.org@gmail.com',
-      pass: 'cfsoabwwgsodwsvw'
-    }
-  });
-  
+  service: 'gmail',
+  auth: {
+    user: 'annaseva.org@gmail.com',
+    pass: 'cfsoabwwgsodwsvw' // Replace with your actual password
+  }
+});
 
-  const calculatePriority = (donation, location) => {
-    const distance = Math.sqrt(
-      Math.pow(donation.location.coordinates[0] - location.coordinates[0], 2) +
-      Math.pow(donation.location.coordinates[1] - location.coordinates[1], 2)
-    );
-    return 1 / distance; // Higher priority for shorter distances
-  };
-  
-  exports.offerDonationsToVolunteers = async () => {
-    try {
-      const eligibleDonations = await Donation.find({
-        $or: [
-          { donationStatus: 'Available', createdAt: { $lte: new Date(Date.now() - 3 * 60 * 60 * 1000) } },
-          { donationStatus: 'Available', expiry: { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } }
-        ]
+const calculatePriority = (donation, location) => {
+  const distance = Math.sqrt(
+    Math.pow(donation.location.coordinates[0] - location.coordinates[0], 2) +
+    Math.pow(donation.location.coordinates[1] - location.coordinates[1], 2)
+  );
+  return 1 / distance; // Higher priority for shorter distances
+};
+
+exports.offerDonationsToVolunteers = async () => {
+  try {
+    const eligibleDonations = await Donation.find({
+      donationStatus: 'Available',
+      createdAt: { $lte: new Date(Date.now() - 3 * 60 * 60 * 1000) },
+      expiry: { $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+    });
+
+    console.log(eligibleDonations);
+
+    for (const donation of eligibleDonations) {
+      console.log(`Processing donation: ${donation._id}`);
+      if (!donation.location || !donation.location.coordinates || donation.location.coordinates.length !== 2) {
+        console.error(`Invalid donation location for donation ID: ${donation._id}`);
+        continue;
+      }
+
+      const nearbyVolunteers = await Volunteer.find({
+        location: {
+          $near: {
+            $geometry: { type: 'Point', coordinates: donation.location.coordinates },
+            $maxDistance: 50000 // 50km
+          }
+        }
       });
-  
-      console.log(eligibleDonations);
-  
-      for (const donation of eligibleDonations) {
-        console.log(`Processing donation: ${donation._id}`);
-        if (!donation.location || !donation.location.coordinates || donation.location.coordinates.length !== 2) {
-          console.error(`Invalid donation location for donation ID: ${donation._id}`);
+
+      for (const volunteer of nearbyVolunteers) {
+        if (!volunteer.location || !volunteer.location.coordinates || volunteer.location.coordinates.length !== 2) {
+          console.error(`Invalid volunteer location for volunteer ID: ${volunteer._id}`);
           continue;
         }
-  
-        const nearbyVolunteers = await Volunteer.find({
-          location: {
-            $near: {
-              $geometry: { type: 'Point', coordinates: donation.location.coordinates },
-              $maxDistance: 50000 // 50km
-            }
-          }
+
+        // Check if notification already sent for this donation and volunteer
+        const existingNotification = await Notification.findOne({
+          recipient: volunteer._id,
+          type: 'DonationAvailable',
+          'metadata.donationId': donation._id
         });
-  
-        for (const volunteer of nearbyVolunteers) {
-          if (!volunteer.location || !volunteer.location.coordinates || volunteer.location.coordinates.length !== 2) {
-            console.error(`Invalid volunteer location for volunteer ID: ${volunteer._id}`);
-            continue;
-          }
-        }
-  
-        const prioritizedVolunteers = nearbyVolunteers.map(volunteer => ({
-          ...volunteer.toObject(),
-          priority: calculatePriority(donation, volunteer.location)
-        })).sort((a, b) => b.priority - a.priority);
-  
-        for (const volunteer of prioritizedVolunteers) {
+
+        if (!existingNotification) {
+          // Send notification
           const notification = new Notification({
             recipient: volunteer._id,
             message: `New donation available: ${donation.name}`,
@@ -69,7 +68,8 @@ const transporter = nodemailer.createTransport({
             metadata: { donationId: donation._id }
           });
           await notification.save();
-  
+
+          // Send email
           const mailOptions = {
             from: 'annaseva.org@gmail.com',
             to: volunteer.email,
@@ -89,7 +89,7 @@ const transporter = nodemailer.createTransport({
               </div>
             `
           };
-  
+
           transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
               console.log('Error sending email:', error);
@@ -99,7 +99,8 @@ const transporter = nodemailer.createTransport({
           });
         }
       }
-    } catch (error) {
-      console.error('Error offering donations to volunteers:', error);
     }
-  };
+  } catch (error) {
+    console.error('Error offering donations to volunteers:', error);
+  }
+};

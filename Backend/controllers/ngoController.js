@@ -6,28 +6,29 @@ const Donation = require('../models/donationModel');
 const Hotel = require('../models/donationModel')
 const multer = require('multer')
 const path = require('path')
-// Set up multer for file uploads
-// Set up multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public/kyc-Documents');
+// Set up multer for file upload
+// Multer configuration for KYC documents and signature image
+const kycStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/kycDocuments'); // Destination folder for KYC documents
   },
-  filename: function (req, file, cb) {
+  filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname)); // Unique filename
   }
 });
 
-const upload = multer({ storage: storage });
-
-
+const uploadKycDocuments = multer({ storage: kycStorage });
 
 // Controller to register a new NGO
 exports.registerNGO = [
-  upload.array('kycDocuments', 5), // Allow up to 5 documents
+  uploadKycDocuments.fields([
+    { name: 'kycDocuments', maxCount: 5 }, 
+    { name: 'signatureImage', maxCount: 1 }
+  ]), // Allow up to 5 KYC documents and 1 signature image
   async (req, res) => {
     try {
-      const { name, email, password, address, city, state, pincode, contactPerson, contactNumber, locationType, locationCoordinates } = req.body;
+      const { name, email, password, address, city, state, pincode, contactPerson, contactNumber, locationType, locationCoordinates, acceptedTermsVersion, userAgent, ipAddress } = req.body;
       
       // Ensure location data is provided in the correct format
       let location;
@@ -46,7 +47,10 @@ exports.registerNGO = [
       const hashedPassword = await bcrypt.hash(password, salt);
 
       // Get KYC document paths
-      const kycDocuments = req.files.map(file => file.path);
+      const kycDocuments = req.files.kycDocuments.map(file => file.path);
+
+      // Get the signature image path
+      const signatureImage = req.files.signatureImage ? req.files.signatureImage[0].path : null;
 
       const ngo = await NGO.create({
         name,
@@ -60,7 +64,15 @@ exports.registerNGO = [
         contactNumber,
         location,
         kycDocuments, // Store KYC documents paths
-        isVerified: false // Initial verification status
+        isVerified: false, // Initial verification status
+        termsAcceptance: {
+          acceptedAt: new Date(),
+          ipAddress,
+          userAgent,
+          signatureImage, // Store the signature image path
+          acceptedTermsVersion,
+          isAccepted: true
+        }
       });
 
       res.status(201).json({ success: true, ngo });
@@ -69,7 +81,6 @@ exports.registerNGO = [
     }
   }
 ];
-
 // Controller to get all non-verified NGOs
 exports.getNonVerifiedNGOs = async (req, res) => {
   try {

@@ -22,7 +22,7 @@ import {
 } from "@mui/material";
 import { useSelector } from "react-redux";
 
-const NgoDashboard = ({ setSelectedLink }) => {
+const VolunteerDashboard = ({ setSelectedLink }) => {
   const [donations, setDonations] = useState([]);
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [openModal, setOpenModal] = useState(false);
@@ -32,9 +32,11 @@ const NgoDashboard = ({ setSelectedLink }) => {
     if (user) {
       // Fetch donations for the volunteer
       axios
-        .get(`http://localhost:5000/api/donation/getDonationForVolunteer?id=${user._id}`)
+        .get(
+          `http://localhost:5000/api/donation/getDonationForVolunteer?id=${user._id}`
+        )
         .then((response) => {
-          setDonations(response.data.donations);
+          setDonations(response.data.donations || []);
         })
         .catch((error) => {
           console.error("Error fetching donations:", error);
@@ -72,9 +74,11 @@ const NgoDashboard = ({ setSelectedLink }) => {
         });
         // Reload donations after accepting
         axios
-          .get(`http://localhost:5000/api/donation/getDonationForVolunteer?id=${user._id}`)
+          .get(
+            `http://localhost:5000/api/donation/getDonationForVolunteer?id=${user._id}`
+          )
           .then((response) => {
-            setDonations(response.data.donations);
+            setDonations(response.data.donations || []);
           })
           .catch((error) => {
             console.error("Error fetching donations:", error);
@@ -127,29 +131,54 @@ const NgoDashboard = ({ setSelectedLink }) => {
                   height="200"
                   image={`http://localhost:5000/${donation.uploadPhoto}`}
                   alt={donation.name}
-                  sx={{ objectFit: "cover", borderTopLeftRadius: "16px", borderTopRightRadius: "16px" }}
+                  sx={{
+                    objectFit: "cover",
+                    borderTopLeftRadius: "16px",
+                    borderTopRightRadius: "16px",
+                  }}
                 />
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="h6" component="div" gutterBottom>
                     {donation.name}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ flexGrow: 1 }}
+                  >
                     Description: {donation.description}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ flexGrow: 1 }}
+                  >
                     Quantity: {donation.quantity}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ flexGrow: 1 }}
+                  >
                     Distance:{" "}
-                    {calculateDistance(
-                      donation.location.coordinates[1],
-                      donation.location.coordinates[0],
-                      user.location.coordinates[1],
-                      user.location.coordinates[0]
-                    ).toFixed(2)}{" "}
+                    {user &&
+                      user.location &&
+                      donation.location &&
+                      calculateDistance(
+                        donation.location.coordinates[1],
+                        donation.location.coordinates[0],
+                        user.location.coordinates[1],
+                        user.location.coordinates[0]
+                      ).toFixed(2)}{" "}
                     km
                   </Typography>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mt: 2,
+                    }}
+                  >
                     <Button
                       variant="contained"
                       onClick={() => handleAcceptDonation(donation._id)}
@@ -233,7 +262,9 @@ const NgoDashboard = ({ setSelectedLink }) => {
                 <TableRow>
                   <TableCell>Pickup Instructions:</TableCell>
                   <TableCell>
-                    {selectedDonation ? selectedDonation.pickupInstructions : ""}
+                    {selectedDonation
+                      ? selectedDonation.pickupInstructions
+                      : ""}
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -254,4 +285,4 @@ const NgoDashboard = ({ setSelectedLink }) => {
   );
 };
 
-export default NgoDashboard;
+export default VolunteerDashboard;

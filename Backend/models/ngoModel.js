@@ -17,8 +17,18 @@ const ngoSchema = new Schema({
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number] }
   },
-  kycDocuments: { type: [String] }, // Array of file paths for KYC documents
-  isVerified: { type: Boolean, default: false } // Verification status
+  kycDocuments: { type: [String] },
+  isVerified: { type: Boolean, default: false },
+  termsAcceptance: {
+    acceptedAt: { type: Date },
+    ipAddress: { type: String },
+    userAgent: { type: String },
+    signatureImage: { type: String },
+    acceptedTermsVersion: { type: String },
+    isAccepted: { type: Boolean, default: false },
+    representativeName: { type: String },
+    representativePosition: { type: String }
+  }
 }, { timestamps: true });
 
 ngoSchema.index({ location: '2dsphere' });

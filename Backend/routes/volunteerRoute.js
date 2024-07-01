@@ -28,6 +28,9 @@ router.get('/volunteers/non-verified', volunteerController.getNonVerifiedVolunte
 
 // router.put('/volunteers/verify/:volunteerId', volunteerController.verifyVolunteer);
 
+router.get('/',volunteerController.listAvailableDonations)
+
+router.put('/claimDonation',volunteerController.claimDonation)
 
 
 module.exports = router

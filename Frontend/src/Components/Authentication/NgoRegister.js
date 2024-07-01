@@ -39,6 +39,7 @@ function NgoRegister() {
   });
   const [openMapDialog, setOpenMapDialog] = useState(false);
   const navigate = useNavigate();
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -62,8 +63,72 @@ function NgoRegister() {
     setOpenMapDialog(false);
   };
 
+  const validateForm = () => {
+    const {
+      name,
+      email,
+      password,
+      address,
+      city,
+      state,
+      pincode,
+      contactPerson,
+      contactNumber,
+      locationCoordinates,
+    } = formData;
+
+    if (
+      !name ||
+      !email ||
+      !password ||
+      !address ||
+      !city ||
+      !state ||
+      !pincode ||
+      !contactPerson ||
+      !contactNumber
+    ) {
+      toast.error("All fields are required.");
+      return false;
+    }
+
+    if (password.length < 5) {
+      toast.error("Password must be at least 5 characters long.");
+      return false;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Invalid email format it should have @gmail.com");
+      return false;
+    }
+
+    const [lat, lng] = locationCoordinates;
+    if (lat === null || lng === null) {
+      toast.error("Location must be selected on the map.");
+      return false;
+    }
+
+    if (
+      typeof lat !== "number" ||
+      typeof lng !== "number" ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      toast.error("Invalid coordinates.");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
 
     try {
       const response = await axios.post(
@@ -73,7 +138,6 @@ function NgoRegister() {
       if (response.status === 201) {
         toast.success("Registration Successful");
         navigate("/login");
-        // Optionally redirect the user or clear the form here
       }
     } catch (error) {
       toast.error(
@@ -86,7 +150,6 @@ function NgoRegister() {
     <div
       style={{
         backgroundImage: `url(${backGroundImage})`,
-        // height: "120vh",
         width: "100%",
         backgroundSize: "cover",
         backgroundRepeat: "no-repeat",
@@ -329,7 +392,6 @@ function NgoRegister() {
               />
             </Grid>
             <Grid item xs={12}>
-              {/* Map component to select latitude and longitude */}
               <TextField
                 name="latitude"
                 variant="outlined"

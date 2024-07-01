@@ -8,6 +8,7 @@ const multer = require('multer');
 const path = require('path');
 const Volunteer = require('../models/volunteerModel');
 const Donation = require('../models/donationModel');
+const Admin = require('../models/adminModel')
 const nodemailer = require('nodemailer');
 
 // Multer setup
@@ -66,6 +67,9 @@ exports.login = async (req, res) => {
         break;
       case 'volunteer':
         user = await Volunteer.findOne({ email });
+        break;
+      case 'admin':
+        user = await Admin.findOne({email})
         break;
       default:
         return res.status(400).json({ success: false, message: 'Invalid role' });

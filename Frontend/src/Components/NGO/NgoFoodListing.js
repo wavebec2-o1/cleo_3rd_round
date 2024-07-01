@@ -11,55 +11,153 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   CircularProgress,
+  TableContainer,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+  Snackbar,
+  Alert,
+  Step,
+  Stepper,
+  StepLabel,
+  StepIcon,
 } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import QrScanner from "./NgoQrScanner"; // Import your QR Scanner component here
 import { useSelector } from "react-redux";
+import Title from "../Title/Title1";
 
 const DonationList = () => {
   const [donations, setDonations] = useState([]);
   const [trackingInfo, setTrackingInfo] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [openTrackingDialog, setOpenTrackingDialog] = useState(false);
+  const [openQRDialog, setOpenQRDialog] = useState(false);
+  const [selectedDonation, setSelectedDonation] = useState(null);
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
+  const [contactDetails, setContactDetails] = useState(null);
   const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     const fetchDonations = async () => {
-      try {
-        const response = await axios.get(
-          `http://localhost:5000/api/donation/getReceivedDonationForNgo?id=${user._id}`
-        );
-        setDonations(response.data.claimedDonationsWithDetails);
-      } catch (error) {
-        console.error("Error fetching donations:", error);
+      if (user && user._id) {
+        setUserLoading(false);
+        try {
+          const response = await axios.get(
+            `http://annaseva.ajinkyatechnologies.in/api/donation/getReceivedDonationForNgo?id=${user._id}`
+          );
+          setDonations(response.data.claimedDonationsWithDetails);
+        } catch (error) {
+          console.error("Error fetching donations:", error);
+        }
+      } else {
+        setUserLoading(true);
       }
     };
 
     fetchDonations();
-  }, [user._id]);
+  }, [user]);
 
   const handleTrackingClick = async (donationId) => {
-    setOpen(true);
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/tracking/${donationId}`
+        `http://annaseva.ajinkyatechnologies.in/api/tracking/tracking/donation?id=${donationId}`
       );
-      setTrackingInfo(response.data);
+      setTrackingInfo(response.data.trackingRecords[0]);
+      if (response.data.trackingRecords[0].status === "Delivered") {
+        setShowSnackbar(true);
+      }
       setLoading(false);
+      setOpenTrackingDialog(true);
     } catch (error) {
       console.error("Error fetching tracking info:", error);
       setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    setOpen(false);
+  const handleQRScanClick = (donationId) => {
+    const selectedDonation = donations.find(
+      (donation) => donation.donationDetails?._id === donationId
+    );
+    if (selectedDonation) {
+      setSelectedDonation(selectedDonation);
+      setOpenQRDialog(true);
+    } else {
+      console.error(`Donation with ID ${donationId} not found.`);
+    }
+  };
+
+  const handleContactClick = (donationDetails) => {
+    if (donationDetails) {
+      setContactDetails({
+        contactPerson: donationDetails.contactPerson,
+        pickupInstructions: donationDetails.pickupInstructions,
+        // Add any other relevant contact details here
+      });
+      setOpenTrackingDialog(true);
+    } else {
+      console.error("Donation details are undefined");
+      // Optionally, show an error message to the user
+    }
+  };
+
+  const handleCloseTrackingDialog = () => {
+    setOpenTrackingDialog(false);
+    setContactDetails(null);
     setTrackingInfo(null);
+  };
+
+  const handleCloseQRDialog = () => {
+    setOpenQRDialog(false);
+  };
+
+  const handleSnackbarClose = () => {
+    setShowSnackbar(false);
+  };
+
+  const updateStatusToDelivered = async (trackingId) => {
+    try {
+      const response = await axios.put(
+        `http://annaseva.ajinkyatechnologies.in/api/tracking/scan/ngo?id=${trackingId}`
+      );
+      console.log(response.data);
+      handleTrackingClick(selectedDonation.donationDetails._id);
+      handleCloseQRDialog();
+    } catch (error) {
+      console.error("Error updating status to delivered:", error);
+    }
+  };
+
+  const steps = ["Accepted", "Shipped", "Delivered"];
+
+  const getActiveStep = (status) => {
+    switch (status) {
+      case "Accepted":
+        return 0;
+      case "Shipped":
+        return 1;
+      case "Delivered":
+        return 2;
+      default:
+        return 0;
+    }
   };
 
   return (
     <Box sx={{ flexGrow: 1, padding: 2 }}>
-      {donations.length === 0 ? (
+      <div className="pb-8">
+        <Title title="Received Donations"></Title>
+      </div>
+      {userLoading ? (
+        <Typography variant="h5" align="center" sx={{ mt: 3 }}>
+          Loading user data...
+        </Typography>
+      ) : donations.length === 0 ? (
         <Typography variant="h5" align="center" sx={{ mt: 3 }}>
           No Donations available at this point
         </Typography>
@@ -67,41 +165,37 @@ const DonationList = () => {
         <Grid container spacing={3}>
           {donations.map((donation) => {
             const donationDetails = donation?.donationDetails;
-            const uploadPhoto = donationDetails?.uploadPhoto;
+            if (!donationDetails) return null;
+
+            const uploadPhoto = donationDetails.uploadPhoto;
             const imageUrl =
               uploadPhoto && uploadPhoto.includes("\\")
-                ? `http://localhost:5000/donations/${uploadPhoto
+                ? `http://annaseva.ajinkyatechnologies.in/${uploadPhoto
                     .split("\\")
                     .pop()}`
                 : uploadPhoto
-                ? `http://localhost:5000/donations/${uploadPhoto}`
+                ? `http://annaseva.ajinkyatechnologies.in/${uploadPhoto}`
                 : "https://via.placeholder.com/200";
 
             return (
-              <Grid item xs={12} sm={6} md={4} key={donationDetails?._id}>
+              <Grid item xs={12} sm={6} md={4} key={donationDetails._id}>
                 <Card
                   sx={{
                     maxWidth: 345,
                     boxShadow: `3px 3px 10px green`,
+                    transition: "transform 0.2s ease-in-out",
+                    "&:hover": {
+                      transform: "scale(1.05)",
+                    },
                   }}
                 >
-                  {imageUrl ? (
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={imageUrl}
-                      alt={donationDetails?.name || "Donation Image"}
-                      style={{ height: "200px", objectFit: "cover" }} // Add this line to fix image size
-                    />
-                  ) : (
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image="https://via.placeholder.com/200"
-                      alt="No Image Available"
-                      style={{ height: "200px", objectFit: "cover" }} // Add this line to fix image size
-                    />
-                  )}
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={imageUrl}
+                    alt={donationDetails?.name || "Donation Image"}
+                    style={{ height: "200px", objectFit: "cover" }}
+                  />
                   <CardContent>
                     <Typography variant="h5" component="div" gutterBottom>
                       {donationDetails?.name}
@@ -109,27 +203,49 @@ const DonationList = () => {
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent: "space-between",
-                        marginTop: 2,
+                        flexDirection: "column",
+                        alignItems: "stretch",
                       }}
                     >
                       <Button
-                        variant="contained"
-                        color="primary"
-                        sx={{ mt: 2 }}
-                      >
-                        Contact
-                      </Button>
-                      <Button
                         variant="outlined"
                         color="primary"
-                        sx={{ ml: 2, mt: 2 }}
-                        onClick={() =>
-                          handleTrackingClick(donationDetails?._id)
-                        }
+                        fullWidth
+                        sx={{ mt: 2 }}
+                        onClick={() => handleTrackingClick(donationDetails._id)}
                       >
-                        Live Tracking
+                        Tracking
                       </Button>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          mt: 2,
+                        }}
+                      >
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          sx={{ width: "calc(50% - 8px)" }}
+                          onClick={() => handleContactClick(donationDetails)}
+                        >
+                          Contact
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          sx={{
+                            width: "calc(50% - 8px)",
+                            backgroundColor: "#20B486",
+                            "&:hover": {
+                              backgroundColor: "#1A946D ",
+                            },
+                            color: "white",
+                          }}
+                          onClick={() => handleQRScanClick(donationDetails._id)}
+                        >
+                          Scan QR
+                        </Button>
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
@@ -139,31 +255,94 @@ const DonationList = () => {
         </Grid>
       )}
 
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Tracking Information</DialogTitle>
+      {/* Tracking/Contact Dialog */}
+      <Dialog open={openTrackingDialog} onClose={handleCloseTrackingDialog}>
+        <DialogTitle>
+          {contactDetails ? "Contact Details" : "Tracking Status"}
+        </DialogTitle>
         <DialogContent>
           {loading ? (
-            <CircularProgress />
-          ) : trackingInfo ? (
-            <Box sx={{ padding: 2 }}>
-              <Typography variant="body1">
-                Current Location: {trackingInfo.currentLocation}
-              </Typography>
-              <Typography variant="body1">
-                Status: {trackingInfo.status}
-              </Typography>
-              <Typography variant="body1">
-                Expected Delivery: {trackingInfo.expectedDelivery}
-              </Typography>
-              {/* Add more tracking details as needed */}
+            <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+              <CircularProgress />
             </Box>
+          ) : contactDetails ? (
+            <TableContainer>
+              <Table>
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: "bold", color: "green" }}>
+                      Contact Person
+                    </TableCell>
+                    <TableCell>{contactDetails.contactPerson}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: "bold", color: "green" }}>
+                      Pickup Instructions
+                    </TableCell>
+                    <TableCell>{contactDetails.pickupInstructions}</TableCell>
+                  </TableRow>
+                  {/* Add more rows for additional contact details if needed */}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : trackingInfo ? (
+            <Stepper
+              activeStep={getActiveStep(trackingInfo.status)}
+              alternativeLabel
+            >
+              {steps.map((label, index) => (
+                <Step key={label}>
+                  <StepLabel
+                    StepIconComponent={(props) =>
+                      index === 2 && trackingInfo.status === "Delivered" ? (
+                        <CheckCircleIcon color="success" />
+                      ) : (
+                        <StepIcon {...props} />
+                      )
+                    }
+                  >
+                    {label}
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
           ) : (
-            <Typography variant="h6">
-              No tracking information available.
-            </Typography>
+            <Typography variant="h6">No details found.</Typography>
           )}
         </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTrackingDialog}>Close</Button>
+        </DialogActions>
       </Dialog>
+
+      {/* QR Scanner Dialog */}
+      <Dialog open={openQRDialog} onClose={handleCloseQRDialog}>
+        <DialogTitle>Scan QR Code</DialogTitle>
+        <DialogContent>
+          {selectedDonation && (
+            <QrScanner
+              isOpen={openQRDialog}
+              onClose={handleCloseQRDialog}
+              onScan={(result) => updateStatusToDelivered(result)}
+              donationId={selectedDonation.donationDetails._id}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseQRDialog}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for congrats message */}
+      <Snackbar
+        open={showSnackbar}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert onClose={handleSnackbarClose} severity="success">
+          Congratulations! Donation has been delivered successfully.
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

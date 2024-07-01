@@ -34,6 +34,6 @@ router.get('/statistics/donations-by-category/:hotelId',  hotelController.getDon
 
 router.get('/hotels/non-verified', hotelController.getNonVerifiedHotels);
 
-router.put('/verify',hotelController.verifyEntity)
+router.put('/verify/:entityType/:entityId',hotelController.verifyEntity)
 
 module.exports = router;

@@ -27,6 +27,7 @@ import {
 } from "@mui/icons-material";
 import { useSelector } from "react-redux";
 import axios from "axios";
+import Title from "../Title/Title1";
 
 const hotelTypes = ["Veg", "Non-Veg", "Both"];
 
@@ -101,7 +102,7 @@ const NgoProfile = () => {
 
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/hotel/${user._id}`,
+        `http://annaseva.ajinkyatechnologies.in/api/hotel/${user._id}`,
         updatedData
       );
       console.log("Success:", response.data);
@@ -113,8 +114,11 @@ const NgoProfile = () => {
 
   return (
     <form onSubmit={handleSubmit}>
+      <div className="">
+        <Title title="Profile "></Title>
+      </div>
       <Card>
-        <CardHeader subheader="The information can be edited" title="Profile" />
+        <CardHeader subheader="The information can be edited" />
         <Divider />
         <CardContent>
           <Grid container spacing={3}>
@@ -304,7 +308,7 @@ const NgoProfile = () => {
               Edit
             </Button>
           ) : (
-            <Button variant="contained" type="submit">
+            <Button variant="contained" color="secondary" type="submit">
               Save
             </Button>
           )}

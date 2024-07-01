@@ -13,7 +13,9 @@ function Section3() {
     <>
       <div style={{ border: "1px solid black", backgroundColor: "#20B486" }}>
         <div className="text-center pt-8">
-          <Typography variant="h3"> - WHAT WE DO - </Typography>
+          <Typography sx={{ fontWeight: "bold" }} variant="h4">
+            - WHAT WE DO -
+          </Typography>
         </div>
         <div
           className="max-xl:flex-col"
@@ -52,7 +54,7 @@ function Section3() {
             >
               <LocalDiningIcon style={{ fontSize: 40, margin: "10px" }} />
               <div style={{ color: "white" }}>
-                <Typography variant="h5">
+                <Typography sx={{ fontWeight: "semibold" }} variant="h5">
                   Restaurants/Users List Surplus Food{" "}
                 </Typography>
                 <p>
@@ -75,7 +77,9 @@ function Section3() {
             >
               <VolunteerActivismIcon style={{ fontSize: 40, margin: "10px" }} />
               <div style={{ color: "white" }}>
-                <Typography variant="h5">NGOs Browse and Request</Typography>
+                <Typography sx={{ fontWeight: "semibold" }} variant="h5">
+                  NGOs Browse and Request
+                </Typography>
                 <p>
                   NGOs can browse the available surplus food listings based on
                   their requirements. With filters for food type, quantity, and
@@ -95,7 +99,9 @@ function Section3() {
             >
               <LocalShippingIcon style={{ fontSize: 40, margin: "10px" }} />
               <div style={{ color: "white" }}>
-                <Typography variant="h5">Seamless Redistribution</Typography>
+                <Typography sx={{ fontWeight: "semibold" }} variant="h5">
+                  Seamless Redistribution
+                </Typography>
                 <p>
                   AnnaSeva facilitates smooth and efficient redistribution of
                   food. Our system prioritizes requests based on various factors

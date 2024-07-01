@@ -1,49 +1,75 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer')
-const Hotel = require('../models/hotelModel');
-const Donation = require('../models/donationModel');
-const NGO = require('../models/ngoModel');
-const Report = require('../models/reportModel');
-const geolib = require('geolib');
-const mongoose = require('mongoose')
-const multer = require('multer');
-const path = require('path');
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
+const Hotel = require("../models/hotelModel");
+const Donation = require("../models/donationModel");
+const NGO = require("../models/ngoModel");
+const Report = require("../models/reportModel");
+const geolib = require("geolib");
+const mongoose = require("mongoose");
+const multer = require("multer");
+const path = require("path");
+const Volunteer = require("../models/volunteerModel");
 
 // Set up multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'public/kyc-Documents');
+    if (file.fieldname === 'signatureImage') {
+      cb(null, "public/signatures");
+    } else {
+      cb(null, "public/kycDocuments");
+    }
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
+  },
 });
 
 const upload = multer({ storage: storage });
 
-
-
-
-
 // Controller to register a new hotel
 exports.registerHotel = [
-  upload.array('kycDocuments', 5), // Allow up to 5 documents
+  upload.fields([
+    { name: 'kycDocuments', maxCount: 5 },
+    { name: 'signatureImage', maxCount: 1 }
+  ]),
   async (req, res) => {
     try {
-      const { name, email, password, address, locationType, locationCoordinates, city, state, pincode, contactPerson, contactNumber } = req.body;
+      const {
+        name,
+        email,
+        password,
+        address,
+        locationType,
+        locationCoordinates,
+        city,
+        state,
+        pincode,
+        contactPerson,
+        contactNumber,
+        termsVersion,
+      } = req.body;
 
       // Ensure location data is provided in the correct format
       let location;
-      if (Array.isArray(locationCoordinates) && locationCoordinates.length === 2 && locationCoordinates.every(isFinite)) {
+      if (
+        Array.isArray(locationCoordinates) &&
+        locationCoordinates.length === 2 &&
+        locationCoordinates.every(isFinite)
+      ) {
         location = {
           type: locationType,
-          coordinates: locationCoordinates
+          coordinates: locationCoordinates,
         };
       } else {
-        // Return an error response if location coordinates are invalid
-        return res.status(400).json({ success: false, message: "Invalid location coordinates provided" });
+        return res.status(400).json({
+          success: false,
+          message: "Invalid location coordinates provided",
+        });
       }
 
       // Hash the password
@@ -51,12 +77,25 @@ exports.registerHotel = [
       const hashedPassword = await bcrypt.hash(password, salt);
 
       // Get KYC document paths
-      const kycDocuments = req.files.map(file => file.path);
+      const kycDocuments = req.files['kycDocuments'].map((file) => file.path);
+
+      // Get signature image path
+      const signatureImage = req.files['signatureImage'][0].path;
+
+      // Prepare terms acceptance data
+      const termsAcceptance = {
+        acceptedAt: new Date(),
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        signatureImage: signatureImage,
+        acceptedTermsVersion: termsVersion,
+        isAccepted: true
+      };
 
       const hotel = await Hotel.create({
         name,
         email,
-        password: hashedPassword, // Store the hashed password
+        password: hashedPassword,
         address,
         location,
         city,
@@ -64,17 +103,17 @@ exports.registerHotel = [
         pincode,
         contactPerson,
         contactNumber,
-        kycDocuments, // Store KYC documents paths
-        isVerified: false // Initial verification status
+        kycDocuments,
+        isVerified: false,
+        termsAcceptance
       });
 
       res.status(201).json({ success: true, hotel });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
-  }
+  },
 ];
-
 
 // Controller to get all non-verified hotels
 exports.getNonVerifiedHotels = async (req, res) => {
@@ -89,11 +128,11 @@ exports.getNonVerifiedHotels = async (req, res) => {
 // Controller to verify a hotel
 // Nodemailer setup
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
-    user: 'annaseva.org@gmail.com',
-    pass: 'cfsoabwwgsodwsvw' 
-  }
+    user: "annaseva.org@gmail.com",
+    pass: "cfsoabwwgsodwsvw",
+  },
 });
 
 // Verify NGO or Hotel
@@ -103,18 +142,25 @@ exports.verifyEntity = async (req, res) => {
 
     let entity;
     switch (entityType) {
-      case 'ngo':
+      case "ngo":
         entity = await NGO.findById(entityId);
         break;
-      case 'hotel':
+      case "hotel":
         entity = await Hotel.findById(entityId);
         break;
+      case "volunteer":
+        entity = await Volunteer.findById(entityId);
+        break;
       default:
-        return res.status(400).json({ success: false, message: 'Invalid entity type' });
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid entity type" });
     }
 
     if (!entity) {
-      return res.status(404).json({ success: false, message: 'Entity not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Entity not found" });
     }
 
     entity.isVerified = true;
@@ -123,17 +169,21 @@ exports.verifyEntity = async (req, res) => {
     // Send verification email
     await sendVerificationEmail(entityType, entity);
 
-    res.status(200).json({ success: true, message: `${entityType} verified successfully`, entity });
+    res.status(200).json({
+      success: true,
+      message: `${entityType} verified successfully`,
+      entity,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal Server Error' });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 // Helper function to send verification email
 async function sendVerificationEmail(entityType, entity) {
   const mailOptions = {
-    from: 'annaseva.org@gmail.com',
+    from: "annaseva.org@gmail.com",
     to: entity.email,
     subject: `${entityType.toUpperCase()} Verified`,
     html: `
@@ -194,24 +244,29 @@ async function sendVerificationEmail(entityType, entity) {
         </div>
       </body>
       </html>
-    `
+    `,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`${entityType.toUpperCase()} verification email sent to ${entity.email}`);
+    console.log(
+      `${entityType.toUpperCase()} verification email sent to ${entity.email}`
+    );
 
     // Create an in-app notification
     const notification = new Notification({
       recipient: entity._id,
       message: `${entityType.toUpperCase()} verified successfully`,
-      type: 'Verification',
-      metadata: { entityId: entity._id }
+      type: "Verification",
+      metadata: { entityId: entity._id },
     });
     await notification.save();
-
   } catch (error) {
-    console.error(`Error sending ${entityType.toUpperCase()} verification email to ${entity.email}: ${error.message}`);
+    console.error(
+      `Error sending ${entityType.toUpperCase()} verification email to ${
+        entity.email
+      }: ${error.message}`
+    );
   }
 }
 
@@ -300,7 +355,9 @@ exports.getHotelById = async (req, res) => {
   try {
     const hotel = await Hotel.findById(req.params.id);
     if (!hotel) {
-      return res.status(404).json({ success: false, message: 'Hotel not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Hotel not found" });
     }
     res.status(200).json({ success: true, hotel });
   } catch (error) {
@@ -311,9 +368,13 @@ exports.getHotelById = async (req, res) => {
 // Controller to update a hotel
 exports.updateHotel = async (req, res) => {
   try {
-    const hotel = await Hotel.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const hotel = await Hotel.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
     if (!hotel) {
-      return res.status(404).json({ success: false, message: 'Hotel not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Hotel not found" });
     }
     res.status(200).json({ success: true, hotel });
   } catch (error) {
@@ -326,9 +387,13 @@ exports.deleteHotel = async (req, res) => {
   try {
     const hotel = await Hotel.findByIdAndDelete(req.params.id);
     if (!hotel) {
-      return res.status(404).json({ success: false, message: 'Hotel not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Hotel not found" });
     }
-    res.status(200).json({ success: true, message: 'Hotel deleted successfully' });
+    res
+      .status(200)
+      .json({ success: true, message: "Hotel deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -341,8 +406,13 @@ exports.hotelDashboard = async (req, res) => {
     // Find donations made by this hotel
     const donations = await Donation.find({ hotelId });
     // Find pending requests for donations made by this hotel
-    const pendingRequests = donations.filter(donation => donation.requests.length > 0);
-    res.status(200).json({ success: true, data: { donations, pendingRequests, donationCount: donations.length } });
+    const pendingRequests = donations.filter(
+      (donation) => donation.requests.length > 0
+    );
+    res.status(200).json({
+      success: true,
+      data: { donations, pendingRequests, donationCount: donations.length },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -356,7 +426,9 @@ exports.getTotalDonationsByHotel = async (req, res) => {
     res.status(200).json({ totalDonations });
   } catch (error) {
     console.error("Error fetching total donations by hotel:", error);
-    res.status(500).json({ message: 'Error fetching total donations by hotel' });
+    res
+      .status(500)
+      .json({ message: "Error fetching total donations by hotel" });
   }
 };
 
@@ -366,12 +438,12 @@ exports.getDonationsByStatus = async (req, res) => {
     const { hotelId } = req.params;
     const donationsByStatus = await Donation.aggregate([
       { $match: { hotel: new mongoose.Types.ObjectId(hotelId) } },
-      { $group: { _id: "$donationStatus", count: { $sum: 1 } } }
+      { $group: { _id: "$donationStatus", count: { $sum: 1 } } },
     ]);
     res.status(200).json({ donationsByStatus });
   } catch (error) {
     console.error("Error fetching donations by status:", error);
-    res.status(500).json({ message: 'Error fetching donations by status' });
+    res.status(500).json({ message: "Error fetching donations by status" });
   }
 };
 
@@ -383,16 +455,19 @@ exports.getMonthlyDonations = async (req, res) => {
       { $match: { hotel: new mongoose.Types.ObjectId(hotelId) } },
       {
         $group: {
-          _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
-          count: { $sum: 1 }
-        }
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" },
+          },
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { "_id.year": 1, "_id.month": 1 } }
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]);
     res.status(200).json({ monthlyDonations });
   } catch (error) {
     console.error("Error fetching monthly donations:", error);
-    res.status(500).json({ message: 'Error fetching monthly donations' });
+    res.status(500).json({ message: "Error fetching monthly donations" });
   }
 };
 
@@ -402,12 +477,12 @@ exports.getDonationsByCategory = async (req, res) => {
     const { hotelId } = req.params;
     const donationsByCategory = await Donation.aggregate([
       { $match: { hotel: new mongoose.Types.ObjectId(hotelId) } },
-      { $group: { _id: "$category", count: { $sum: 1 } } }
+      { $group: { _id: "$category", count: { $sum: 1 } } },
     ]);
     res.status(200).json({ donationsByCategory });
   } catch (error) {
     console.error("Error fetching donations by category:", error);
-    res.status(500).json({ message: 'Error fetching donations by category' });
+    res.status(500).json({ message: "Error fetching donations by category" });
   }
 };
 
@@ -429,46 +504,49 @@ exports.getStatistics = async (req, res) => {
 
     let result;
     switch (type) {
-      case 'total':
+      case "total":
         result = await Donation.countDocuments(matchCriteria);
         res.status(200).json({ totalDonations: result });
         break;
 
-      case 'status':
+      case "status":
         result = await Donation.aggregate([
           { $match: matchCriteria },
-          { $group: { _id: "$donationStatus", count: { $sum: 1 } } }
+          { $group: { _id: "$donationStatus", count: { $sum: 1 } } },
         ]);
         res.status(200).json({ donationsByStatus: result });
         break;
 
-      case 'monthly':
+      case "monthly":
         result = await Donation.aggregate([
           { $match: matchCriteria },
           {
             $group: {
-              _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
-              count: { $sum: 1 }
-            }
+              _id: {
+                month: { $month: "$createdAt" },
+                year: { $year: "$createdAt" },
+              },
+              count: { $sum: 1 },
+            },
           },
-          { $sort: { "_id.year": 1, "_id.month": 1 } }
+          { $sort: { "_id.year": 1, "_id.month": 1 } },
         ]);
         res.status(200).json({ monthlyDonations: result });
         break;
 
-      case 'category':
+      case "category":
         result = await Donation.aggregate([
           { $match: matchCriteria },
-          { $group: { _id: "$category", count: { $sum: 1 } } }
+          { $group: { _id: "$category", count: { $sum: 1 } } },
         ]);
         res.status(200).json({ donationsByCategory: result });
         break;
 
       default:
-        res.status(400).json({ message: 'Invalid statistics type specified' });
+        res.status(400).json({ message: "Invalid statistics type specified" });
     }
   } catch (error) {
     console.error("Error fetching statistics:", error);
-    res.status(500).json({ message: 'Error fetching statistics' });
+    res.status(500).json({ message: "Error fetching statistics" });
   }
 };

@@ -9,7 +9,6 @@ import {
   RadioGroup,
   FormControlLabel,
   FormControl,
-  FormLabel,
 } from "@mui/material";
 import EmailIcon from "@mui/icons-material/Email";
 import LockIcon from "@mui/icons-material/Lock";
@@ -20,15 +19,26 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { login } from "../../features/auth/authSlice";
 
+import { useRef } from "react";
+
 function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     role: "user",
   });
+  const [isVerified, setIsVerified] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
+
+  const recaptchaRef = React.useRef();
+
+  const handleRecaptchaChange = (value) => {
+    if (value) {
+      setIsVerified(true);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -38,8 +48,36 @@ function LoginPage() {
     }));
   };
 
+  const validateForm = () => {
+    if (!formData.email) {
+      toast.error("Email is required");
+      return false;
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      toast.error("Email is invalid");
+      return false;
+    }
+    if (!formData.password) {
+      toast.error("Password is required");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCaptchaChange = (value) => {
+    setIsVerified(!!value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    if (!isVerified) {
+      toast.error("Please complete the reCAPTCHA verification.");
+      return;
+    }
 
     dispatch(login(formData)).then((result) => {
       if (result.meta.requestStatus === "fulfilled") {
@@ -57,7 +95,7 @@ function LoginPage() {
             navigate("/ngo_management");
             break;
           case "volunteer":
-            navigate("/volunteer");
+            navigate("/volunteer_management");
             break;
           default:
             navigate("/");
@@ -229,6 +267,19 @@ function LoginPage() {
               />
             </RadioGroup>
           </FormControl>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: "20px",
+            }}
+          >
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey="6LedhYQpAAAAAPjssU5QXcYcacOWUWgN36HAW4iy"
+              onChange={handleRecaptchaChange}
+            />{" "}
+          </div>
           <p
             style={{
               color: "white",
@@ -257,11 +308,11 @@ function LoginPage() {
           >
             Login
           </Button>
-          {error && (
+          {/* {error && (
             <Typography color="error" align="center">
               {error}
             </Typography>
-          )}
+          )} */}
           <div style={{ marginTop: "40px" }}>
             <p
               style={{

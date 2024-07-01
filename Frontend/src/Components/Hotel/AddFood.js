@@ -1300,13 +1300,13 @@ const AddFood = () => {
         formData.append("contactPerson", contactPerson);
         formData.append("pickupInstructions", pickupInstructions);
         formData.append("locationType", "Point");
-        formData.append("locationCoordinates[0]", Number(latitude)); // Send longitude
-        formData.append("locationCoordinates[1]", Number(longitude)); // Send latitude
+        formData.append("locationCoordinates[0]", user.location.coordinates[0]); // Send longitude
+        formData.append("locationCoordinates[1]", user.location.coordinates[1]); // Send latitude
         formData.append("uploadPhoto", image);
 
         try {
           const response = await axios.post(
-            `http://localhost:5000/api/donation/donations?id=${user._id}`,
+            `http://annaseva.ajinkyatechnologies.in/api/donation/donations?id=${user._id}`,
             formData
           );
 
@@ -1510,7 +1510,7 @@ const AddFood = () => {
             }}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        {/* <Grid item xs={12} sm={6}>
           <TextField
             label="Latitude"
             placeholder="Enter latitude"
@@ -1537,9 +1537,9 @@ const AddFood = () => {
               startAdornment: <LocationOn />,
             }}
           />
-        </Grid>
+        </Grid> */}
       </Grid>
-      <Button
+      {/* <Button
         variant="contained"
         color="primary"
         sx={{
@@ -1551,7 +1551,7 @@ const AddFood = () => {
         onClick={() => setOpen(true)}
       >
         Select Latitude and Longitude from Map
-      </Button>
+      </Button> */}
       <div className="flex items-center justify-center w-full my-4">
         <label
           htmlFor="dropzone-file"

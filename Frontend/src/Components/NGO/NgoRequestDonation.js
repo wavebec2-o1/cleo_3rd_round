@@ -23,6 +23,7 @@ import {
   TableBody,
 } from "@mui/material";
 import { useSelector } from "react-redux";
+import Title from "../Title/Title1";
 
 const NgoRequestDonation = () => {
   const [donations, setDonations] = useState([]);
@@ -36,7 +37,9 @@ const NgoRequestDonation = () => {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:5000/api/donation/ngos/${user._id}/donations`)
+      .get(
+        `http://annaseva.ajinkyatechnologies.in/api/donation/ngos/${user._id}/donations`
+      )
       .then((response) => {
         setDonations(response.data.donations);
       })
@@ -90,10 +93,13 @@ const NgoRequestDonation = () => {
   const handleConfirmRequest = () => {
     if (selectedDonation) {
       axios
-        .put("http://localhost:5000/api/donation/donations/request", {
-          donationId: selectedDonation._id,
-          ngoId: user._id,
-        })
+        .put(
+          "http://annaseva.ajinkyatechnologies.in/api/donation/donations/request",
+          {
+            donationId: selectedDonation._id,
+            ngoId: user._id,
+          }
+        )
         .then((response) => {
           const requestId = response.data.request._id;
           checkAcceptedDetails(requestId, selectedDonation._id);
@@ -116,9 +122,12 @@ const NgoRequestDonation = () => {
 
   const checkAcceptedDetails = (requestId, donationId) => {
     axios
-      .get(`http://localhost:5000/api/donation/acceptedDetails`, {
-        params: { donationId },
-      })
+      .get(
+        `http://annaseva.ajinkyatechnologies.in/api/donation/acceptedDetails`,
+        {
+          params: { donationId },
+        }
+      )
       .then((response) => {
         const matchedRequest = response.data.requestDetails.some(
           (detail) => detail.requestId === requestId
@@ -178,16 +187,19 @@ const NgoRequestDonation = () => {
 
   return (
     <Box sx={{ flexGrow: 1, padding: 2 }}>
+      <div className="pb-8">
+        <Title title="Request Donation "></Title>
+      </div>
       <Grid container spacing={3}>
         {paginatedDonations.map((donation) => {
           const uploadPhoto = donation.uploadPhoto;
           const imageUrl =
             uploadPhoto && uploadPhoto.includes("\\")
-              ? `http://localhost:5000/donations/${uploadPhoto
+              ? `http://annaseva.ajinkyatechnologies.in/${uploadPhoto
                   .split("\\")
                   .pop()}`
               : uploadPhoto
-              ? `http://localhost:5000/donations/${uploadPhoto}`
+              ? `http://annaseva.ajinkyatechnologies.in/${uploadPhoto}`
               : "https://via.placeholder.com/200";
 
           // Calculate distance between donation and NGO
@@ -204,6 +216,10 @@ const NgoRequestDonation = () => {
                 sx={{
                   maxWidth: 345,
                   boxShadow: `3px 3px 10px ${getBorderColor(donation.expiry)}`,
+                  transition: "transform 0.2s ease-in-out", // Adding transition for smooth effect
+                  "&:hover": {
+                    transform: "scale(1.05)", // Scale effect on hover
+                  },
                 }}
               >
                 {imageUrl ? (

@@ -247,7 +247,7 @@ const QrScanner = () => {
       try {
         const requestData = {
           hotelId: user._id,
-          location: user.location.coordinates,
+          // location: user.location.coordinates,
           agencyName,
           deliveryPersonName,
           deliveryPersonContact,

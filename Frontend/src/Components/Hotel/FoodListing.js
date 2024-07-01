@@ -31,7 +31,7 @@
 //     const fetchDonations = async () => {
 //       try {
 //         const response = await axios.get(
-//           `http://localhost:5000/api/donation/donationsbyhotel?id=${user._id}`
+//           `http://annaseva.ajinkyatechnologies.in/api/donation/donationsbyhotel?id=${user._id}`
 //         );
 //         if (Array.isArray(response.data)) {
 //           setDonationData({ donations: response.data });
@@ -76,11 +76,11 @@
 //           const uploadPhoto = donation.uploadPhoto;
 //           const imageUrl =
 //             uploadPhoto && uploadPhoto.includes("\\")
-//               ? `http://localhost:5000/donations/${uploadPhoto
+//               ? `http://annaseva.ajinkyatechnologies.in/donations/${uploadPhoto
 //                   .split("\\")
 //                   .pop()}`
 //               : uploadPhoto
-//               ? `http://localhost:5000/donations/${uploadPhoto}`
+//               ? `http://annaseva.ajinkyatechnologies.in/donations/${uploadPhoto}`
 //               : null;
 
 //           console.log("Image URL:", imageUrl);
@@ -272,7 +272,7 @@
 //     const fetchDonations = async () => {
 //       try {
 //         const response = await axios.get(
-//           `http://localhost:5000/api/donation/donationsbyhotel?id=${user._id}`
+//           `http://annaseva.ajinkyatechnologies.in/api/donation/donationsbyhotel?id=${user._id}`
 //         );
 //         if (Array.isArray(response.data)) {
 //           setDonationData({ donations: response.data });
@@ -305,7 +305,7 @@
 //   const handleOpenRequestDialog = async (donationId) => {
 //     try {
 //       const response = await axios.get(
-//         `http://localhost:5000/api/donation/getNgoName?id=${donationId}`
+//         `http://annaseva.ajinkyatechnologies.in/api/donation/getNgoName?id=${donationId}`
 //       );
 //       const ngoNames = response.data.ngos.map((ngo) => ngo.name);
 //       setNgoNames(ngoNames);
@@ -346,11 +346,11 @@
 //           const uploadPhoto = donation.uploadPhoto;
 //           const imageUrl =
 //             uploadPhoto && uploadPhoto.includes("\\")
-//               ? `http://localhost:5000/donations/${uploadPhoto
+//               ? `http://annaseva.ajinkyatechnologies.in/donations/${uploadPhoto
 //                   .split("\\")
 //                   .pop()}`
 //               : uploadPhoto
-//               ? `http://localhost:5000/donations/${uploadPhoto}`
+//               ? `http://annaseva.ajinkyatechnologies.in/donations/${uploadPhoto}`
 //               : null;
 
 //           return (
@@ -573,6 +573,7 @@ import {
   TableHead,
 } from "@mui/material";
 import Title from "../Title/Title";
+import haversine from "haversine-distance";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
@@ -588,12 +589,12 @@ const Donations = () => {
   const [selectedDonationId, setSelectedDonationId] = useState(null);
   const [ngoNames, setNgoNames] = useState([]);
   const [requestId, setRequestId] = useState(null); // Add state for requestId
-
+  console.log(user.coordinates);
   useEffect(() => {
     const fetchDonations = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/donation/donationsbyhotel?id=${user._id}`
+          `http://annaseva.ajinkyatechnologies.in/api/donation/donationsbyhotel?id=${user._id}`
         );
         if (Array.isArray(response.data)) {
           setDonationData({ donations: response.data });
@@ -626,10 +627,24 @@ const Donations = () => {
   const handleOpenRequestDialog = async (donationId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/donation/getNgoName?id=${donationId}`
+        `http://annaseva.ajinkyatechnologies.in/api/donation/getNgoName?id=${donationId}`
       );
       const ngos = response.data.ngos;
-      setNgoNames(ngos.map((ngo) => ngo.name));
+      console.log(response.data, donationId);
+      const ngoNamesWithDistance = ngos.map((ngo) => {
+        const hotelCoords = {
+          latitude: user.location.coordinates[0],
+          longitude: user.location.coordinates[1],
+        };
+        const ngoCoords = {
+          latitude: ngo.location.coordinates[0],
+          longitude: ngo.location.coordinates[1],
+        };
+        const distance = haversine(hotelCoords, ngoCoords) / 1000; // Convert to kilometers
+        console.log(distance);
+        return { name: ngo.name, distance: distance.toFixed(2) }; // Limit to 2 decimal places
+      });
+      setNgoNames(ngoNamesWithDistance);
       setSelectedDonationId(donationId);
       setRequestDialogOpen(true);
       if (ngos.length > 0) {
@@ -649,7 +664,7 @@ const Donations = () => {
   const handleAcceptRequest = async (donationId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/donation/donationsbyhotel?id=${user._id}`
+        `http://annaseva.ajinkyatechnologies.in/api/donation/donationsbyhotel?id=${user._id}`
       );
       const donations = response.data;
 
@@ -663,7 +678,7 @@ const Donations = () => {
         donation.requests.forEach(async (requestId) => {
           try {
             await axios.post(
-              "http://localhost:5000/api/donation/request/status",
+              "http://annaseva.ajinkyatechnologies.in/api/donation/request/status",
               {
                 requestId: requestId,
                 status: "Accepted",
@@ -684,7 +699,7 @@ const Donations = () => {
   const handleRejectRequest = async (donationId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/donation/donationsbyhotel?id=${user._id}`
+        `http://annaseva.ajinkyatechnologies.in/api/donation/donationsbyhotel?id=${user._id}`
       );
       const donations = response.data;
 
@@ -698,7 +713,7 @@ const Donations = () => {
         donation.requests.forEach(async (requestId) => {
           try {
             await axios.post(
-              "http://localhost:5000/api/donation/request/status",
+              "http://annaseva.ajinkyatechnologies.in/api/donation/request/status",
               {
                 requestId: requestId,
                 status: "Rejected",
@@ -731,13 +746,13 @@ const Donations = () => {
           const uploadPhoto = donation.uploadPhoto;
           const imageUrl =
             uploadPhoto && uploadPhoto.includes("\\")
-              ? `http://localhost:5000/donations/${uploadPhoto
+              ? `http://annaseva.ajinkyatechnologies.in/${uploadPhoto
                   .split("\\")
                   .pop()}`
               : uploadPhoto
-              ? `http://localhost:5000/donations/${uploadPhoto}`
+              ? `http://annaseva.ajinkyatechnologies.in/${uploadPhoto}`
               : null;
-
+          console.log(imageUrl);
           return (
             <Grid item xs={12} sm={6} md={4} key={donation._id}>
               <Card
@@ -988,16 +1003,20 @@ const Donations = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Name</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", color: "#ff9800" }}>
+                      NGO Name
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold", color: "#ff9800" }}>
+                      Distance (km)
+                    </TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {ngoNames.map((name, index) => (
+                  {ngoNames.map((ngo, index) => (
                     <TableRow key={index}>
-                      <TableCell component="th" scope="row">
-                        {name}
-                      </TableCell>
+                      <TableCell>{ngo.name}</TableCell>
+                      <TableCell>{ngo.distance}</TableCell>
                       <TableCell align="right">
                         <Button
                           variant="contained"

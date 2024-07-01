@@ -16,10 +16,18 @@ const volunteerSchema = new Schema(
       coordinates: { type: [Number], required: true },
     },
     receivedDonations: [{ type: Schema.Types.ObjectId, ref: "Donation" }],
-    distributionPhotos: [{ type: String }], // Store photo URLs
+    distributionPhotos: [{ type: String }],
     isVerified: { type: Boolean, default: false },
-    kycDocuments: { type: [String] }, // Array of file paths for KYC documents
+    kycDocuments: { type: [String] },
     teamSize: { type: Number, default: 1 },
+    termsAcceptance: {
+      acceptedAt: { type: Date },
+      ipAddress: { type: String },
+      userAgent: { type: String },
+      signatureImage: { type: String },
+      acceptedTermsVersion: { type: String },
+      isAccepted: { type: Boolean, default: false }
+    }
   },
   { timestamps: true }
 );

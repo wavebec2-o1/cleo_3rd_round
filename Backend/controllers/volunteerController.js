@@ -3,39 +3,31 @@ const Volunteer = require('../models/volunteerModel');
 const multer = require('multer')
 const Donation = require('../models/donationModel')
 const Request = require('../models/requestModel')
+const Hotel = require('../models/hotelModel')
+const moment = require('moment')
 // Set up multer storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/distribution_photos'); // Specify the destination directory for storing photos
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname); // Generate unique filenames for uploaded photos
-  }
-});
-
-// Create multer instance with storage configuration
-const upload = multer({ storage: storage });
-
-
+// Multer configuration for KYC documents and signature image
 const kycStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'public/kyc-Documents'); // Ensure this directory exists
+    cb(null, 'public/kycDocuments'); // Destination folder for KYC documents
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname); // Generate unique filenames for uploaded documents
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname)); // Unique filename
   }
 });
 
 const uploadKycDocuments = multer({ storage: kycStorage });
 
-// Register a new volunteer
-// Register a new volunteer
+// Controller to register a new Volunteer
 exports.registerVolunteer = [
-  uploadKycDocuments.array('kycDocuments', 5), // Allow up to 5 KYC documents
-  // Allow up to 5 distribution photos
+  uploadKycDocuments.fields([
+    { name: 'kycDocuments', maxCount: 5 }, 
+    { name: 'signatureImage', maxCount: 1 }
+  ]), // Allow up to 5 KYC documents and 1 signature image
   async (req, res) => {
     try {
-      const { name, email, password, address, city, state, pincode, contactNumber, locationType, locationCoordinates } = req.body;
+      const { name, email, password, address, city, state, pincode, contactNumber, locationType, locationCoordinates, acceptedTermsVersion, userAgent, ipAddress } = req.body;
       
       // Ensure location data is provided in the correct format
       let location;
@@ -59,9 +51,11 @@ exports.registerVolunteer = [
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Get KYC document and distribution photo paths
-      const kycDocuments = req.files.filter(file => file.fieldname === 'kycDocuments').map(file => file.path);
-      
+      // Get KYC document paths
+      const kycDocuments = req.files.kycDocuments.map(file => file.path);
+
+      // Get the signature image path
+      const signatureImage = req.files.signatureImage ? req.files.signatureImage[0].path : null;
 
       // Create a new volunteer
       const volunteer = new Volunteer({
@@ -75,7 +69,15 @@ exports.registerVolunteer = [
         contactNumber,
         location,
         kycDocuments, // Store KYC documents paths
-        isVerified: false // Initial verification status
+        isVerified: false, // Initial verification status
+        termsAcceptance: {
+          acceptedAt: new Date(),
+          ipAddress,
+          userAgent,
+          signatureImage, // Store the signature image path
+          acceptedTermsVersion,
+          isAccepted: true
+        }
       });
 
       // Save the volunteer to the database
@@ -88,7 +90,6 @@ exports.registerVolunteer = [
     }
   }
 ];
-
 
 // Controller to get all non-verified Volunteers
 exports.getNonVerifiedVolunteers = async (req, res) => {
@@ -293,47 +294,47 @@ exports.uploadDistributionPhotos = async (req, res) => {
 };
 
 
-exports.getDonationsForVolunteer = async (req, res) => {
+exports.listAvailableDonations = async (req, res) => {
   try {
-    const volunteerId = req.query.id;
-    console.log(volunteerId)
-    // Ensure the volunteerId is valid
-    // if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
-    //   return res.status(400).json({ message: 'Invalid volunteer ID' });
-    // }
+    // Calculate the date 8 hours from now
+    const expiryThreshold = moment().add(8, 'hours').toDate();
 
-    // Find the volunteer to get their location
-    const volunteer = await Volunteer.findById(volunteerId);
-    // if (!volunteer) {
-    //   return res.status(404).json({ message: 'Volunteer not found' });
-    // }
+    // Query for donations that are available and have expiry less than 8 hours from now
+    const availableDonations = await Donation.find({
+      donationStatus: 'Available',
+      expiry: { $lte: expiryThreshold }
+    }).populate('hotel'); // Populate the 'hotel' field to get the hotel details
 
-    const volunteerLocation = volunteer.location.coordinates;
+    // Handle case where no donations are found
+    if (!availableDonations || availableDonations.length === 0) {
+      return res.status(404).json({ success: false, message: 'No available donations found' });
+    }
 
-    // Calculate time thresholds
-    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
-    const eightDaysFromNow = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000);
-
-    // Find donations within 50km of the volunteer's location, created more than 3 hours ago and expiring in less than 8 days
-    const donations = await Donation.find({
-      location: {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: volunteerLocation
-          },
-          $maxDistance: 50000 // 50km in meters
-        }
-      },
-      // donationStatus: 'Available',
-  
-    });
-
-    res.status(200).json(donations);
+    res.status(200).json({ success: true, donations: availableDonations });
   } catch (error) {
-    console.error('Error fetching donations for volunteer:', error);
-    res.status(500).json({ message: 'An error occurred while fetching donations' });
+    console.error('Error listing available donations:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
 
+exports.claimDonation = async (req, res) => {
+  try {
+    const { donationId, volunteerId } = req.params;
 
+    // Update the donation with the volunteer who claimed it
+    const updatedDonation = await Donation.findByIdAndUpdate(
+      donationId,
+      { donationStatus: 'Claimed', acceptedByVolunteer: volunteerId },
+      { new: true }
+    );
+
+    if (!updatedDonation) {
+      return res.status(404).json({ success: false, message: 'Donation not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Donation claimed successfully', donation: updatedDonation });
+  } catch (error) {
+    console.error('Error claiming donation:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};

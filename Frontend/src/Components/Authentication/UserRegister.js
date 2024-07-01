@@ -34,6 +34,7 @@ function UserRegister() {
     longitude: null, // New field for longitude
   });
   const [openMapDialog, setOpenMapDialog] = useState(false);
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -60,8 +61,41 @@ function UserRegister() {
     setOpenMapDialog(false);
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.fullName) newErrors.fullName = "Full Name is required";
+    if (!formData.email) newErrors.email = "Email is required";
+    else if (!formData.email.endsWith("@gmail.com"))
+      newErrors.email = "Email must end with @gmail.com";
+    if (!formData.mobileNo) newErrors.mobileNo = "Mobile Number is required";
+    if (!formData.password) newErrors.password = "Password is required";
+    else if (formData.password.length < 5)
+      newErrors.password = "Password must be at least 5 characters long";
+    if (!formData.city) newErrors.city = "City is required";
+    if (!formData.pincode) newErrors.pincode = "Pincode is required";
+    if (formData.latitude === null) newErrors.latitude = "Latitude is required";
+    else if (
+      isNaN(formData.latitude) ||
+      formData.latitude < -90 ||
+      formData.latitude > 90
+    )
+      newErrors.latitude = "Invalid Latitude";
+    if (formData.longitude === null)
+      newErrors.longitude = "Longitude is required";
+    else if (
+      isNaN(formData.longitude) ||
+      formData.longitude < -180 ||
+      formData.longitude > 180
+    )
+      newErrors.longitude = "Invalid Longitude";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
 
     try {
       const response = await axios.post(
@@ -166,6 +200,8 @@ function UserRegister() {
                 value={formData.fullName}
                 onChange={handleInputChange}
                 required
+                error={!!errors.fullName}
+                helperText={errors.fullName}
                 InputProps={{
                   startAdornment: (
                     <PersonIcon sx={{ color: "black", marginRight: "10px" }} />
@@ -184,6 +220,8 @@ function UserRegister() {
                 value={formData.email}
                 onChange={handleInputChange}
                 required
+                error={!!errors.email}
+                helperText={errors.email}
                 InputProps={{
                   startAdornment: (
                     <EmailIcon sx={{ color: "black", marginRight: "10px" }} />
@@ -202,6 +240,8 @@ function UserRegister() {
                 value={formData.mobileNo}
                 onChange={handleInputChange}
                 required
+                error={!!errors.mobileNo}
+                helperText={errors.mobileNo}
                 InputProps={{
                   startAdornment: (
                     <PhoneIcon sx={{ color: "black", marginRight: "10px" }} />
@@ -221,6 +261,8 @@ function UserRegister() {
                 value={formData.password}
                 onChange={handleInputChange}
                 required
+                error={!!errors.password}
+                helperText={errors.password}
                 InputProps={{
                   startAdornment: (
                     <LockIcon sx={{ color: "black", marginRight: "10px" }} />
@@ -239,6 +281,8 @@ function UserRegister() {
                 value={formData.city}
                 onChange={handleInputChange}
                 required
+                error={!!errors.city}
+                helperText={errors.city}
                 InputProps={{
                   startAdornment: (
                     <LocationCityIcon
@@ -259,6 +303,8 @@ function UserRegister() {
                 value={formData.pincode}
                 onChange={handleInputChange}
                 required
+                error={!!errors.pincode}
+                helperText={errors.pincode}
                 InputProps={{
                   startAdornment: (
                     <PinDropIcon sx={{ color: "black", marginRight: "10px" }} />
@@ -275,6 +321,10 @@ function UserRegister() {
                 fullWidth
                 margin="normal"
                 value={formData.latitude}
+                onChange={handleInputChange}
+                required
+                error={!!errors.latitude}
+                helperText={errors.latitude}
                 InputProps={{
                   startAdornment: (
                     <PersonIcon sx={{ color: "black", marginRight: "10px" }} />
@@ -291,6 +341,10 @@ function UserRegister() {
                 fullWidth
                 margin="normal"
                 value={formData.longitude}
+                onChange={handleInputChange}
+                required
+                error={!!errors.longitude}
+                helperText={errors.longitude}
                 InputProps={{
                   startAdornment: (
                     <PersonIcon sx={{ color: "black", marginRight: "10px" }} />

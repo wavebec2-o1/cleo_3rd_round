@@ -6,8 +6,9 @@ import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
-import { Typography, Button } from "@mui/material";
+import { Typography, InputBase } from "@mui/material";
 import Avatar from "@mui/material/Avatar";
+import Badge from "@mui/material/Badge";
 import {
   Dashboard as DashboardIcon,
   Add as AddIcon,
@@ -15,12 +16,15 @@ import {
   Notifications as NotificationsIcon,
   AccountCircle as AccountCircleIcon,
   Help as HelpIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import Logo from "../../../Images/Logo.svg";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { logout } from "../../../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useSelector } from "react-redux";
 
 import NgoDashboard from "../NgoDashboard";
 import NgoRequestDonation from "../NgoRequestDonation";
@@ -32,6 +36,8 @@ import NgoHelpSupport from "../NgoHelpSupport";
 const NgoSideNav = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLink, setSelectedLink] = useState("NgoDashboard");
+  const { user } = useSelector((state) => state.auth);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -60,6 +66,24 @@ const NgoSideNav = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCount();
+    }
+  }, [user]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/donation/notificationsCount/${user._id}`
+      );
+      setUnreadCount(response.data.unreadCount);
+      console.log(response);
+    } catch (error) {
+      console.error("Error fetching unread notification count:", error);
+    }
+  };
+
   return (
     <div>
       <nav
@@ -68,7 +92,7 @@ const NgoSideNav = () => {
         } transition-all fixed inset-x-0 top-0`}
         style={{
           boxShadow: "rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;",
-          backgroundColor: "#20B486",
+          background: "linear-gradient(107deg, #20B486 11.1%, #1A946D 95.3%)",
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -101,20 +125,26 @@ const NgoSideNav = () => {
             </div>
 
             <div className="flex items-center">
-              <div className="hidden md:flex items-center">
-                <Button
-                  onClick={handleLogout}
-                  sx={{
-                    color: "#fff",
-                    backgroundColor: "#20B486",
-                    "&:hover": {
-                      backgroundColor: "#1A946D ",
-                    },
+              <div className="relative bg-white rounded-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <SearchIcon />
+                </div>
+                <InputBase
+                  placeholder="Search…"
+                  classes={{
+                    root: "pl-10 pr-2 ",
                   }}
-                >
-                  Log out
-                </Button>
+                  inputProps={{ "aria-label": "search" }}
+                />
               </div>
+              <IconButton
+                color="inherit"
+                onClick={() => setSelectedLink("NgoNotification")}
+              >
+                <Badge badgeContent={unreadCount} color="success">
+                  <NotificationsIcon style={{ color: "white" }} />
+                </Badge>
+              </IconButton>
               <div className="ml-4">
                 <Avatar
                   className="w-10 h-10"
@@ -122,6 +152,9 @@ const NgoSideNav = () => {
                   src="https://oliver-andersen.se/wp-content/uploads/2018/03/cropped-Profile-Picture-Round-Color.png"
                 />
               </div>
+              <IconButton onClick={handleLogout}>
+                <h6 style={{ color: "white", fontSize: "15px" }}>Log Out</h6>
+              </IconButton>
             </div>
           </div>
         </div>
